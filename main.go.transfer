@@ -1,0 +1,42 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"goland/go2web3/ethTransaction"
+
+	"github.com/ethereum/go-ethereum/common"
+)
+
+//"github.com/ethereum/go-ethereum/common"
+
+func main() {
+
+	// privateKey, _ := ethTransaction.GenerateKey()
+	// 	0b7e449896aacdec13a0bf13879ba5db505bd19b80d18106cebf3bfc839871f3
+	//	0x73C17c616B918c73d12EE745Ebe513DdBC0faFaC
+
+	// fmt.Println(hex.EncodeToString(crypto.FromECDSA(privateKey)))
+	// fmt.Println(crypto.PubkeyToAddress(privateKey.PublicKey))
+	privateKey, err := ethTransaction.GetTheKey()
+	if nil != err {
+		panic(err)
+	}
+
+	client, err := ethTransaction.MainnetClient()
+	if nil != err {
+		panic(err)
+	}
+
+	balance, err := client.BalanceAt(context.Background(), common.HexToAddress("0xa7b1d2F8dCB87216f4876B8cD3828AE6B48E4d6E"), nil)
+	fmt.Println(ethTransaction.BigIntToFloat(balance, 18))
+
+	toAddress := common.HexToAddress("0x9D8f030Afa13Ae3c3322D0E89Ef2DB4EAfa2D830")
+
+	err = ethTransaction.TransferEther(client, privateKey, toAddress, 0.0003)
+	//err = erc20Transaction.TransferERC20(client, privateKey, common.HexToAddress("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"), toAddress, 100)
+
+	if nil != err {
+		panic(err)
+	}
+}
