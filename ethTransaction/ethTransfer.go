@@ -1,8 +1,8 @@
 package ethTransaction
 
 import (
-	"context"
 	"crypto/ecdsa"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -11,17 +11,12 @@ import (
 func TransferEther(client *ethclient.Client,
 	privateKey *ecdsa.PrivateKey,
 	toAddress common.Address,
-	amount float64) error {
+	amount float64) ([]byte, common.Address, uint64, *big.Int) {
 
 	gasLimit := uint64(21000)
 	var callData []byte
 
-	gasPrice, err := client.SuggestGasPrice(context.Background())
-	if nil != err {
-		return err
-	}
-
 	bigAmount := FloatToBigInt(amount, 18)
 
-	return Execute(client, privateKey, toAddress, gasLimit, callData, gasPrice, bigAmount)
+	return callData, toAddress, gasLimit, bigAmount
 }

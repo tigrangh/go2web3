@@ -1,14 +1,21 @@
 package main
 
 import (
+	"fmt"
+	"goland/go2web3/alchemy"
 	"goland/go2web3/erc20Transaction"
 	"goland/go2web3/ethTransaction"
 	"goland/go2web3/uni"
+
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
-//"github.com/ethereum/go-ethereum/common"
-
 func main() {
+
+	client, chainId, err := ethTransaction.PolygonMainnetClient()
+	if nil != err {
+		panic(err)
+	}
 
 	// uni.GetRate(3000 /*0.3%*/, uni.UNI, 1, uni.USDT)
 
@@ -22,11 +29,6 @@ func main() {
 
 	//privateKey, err := ethTransaction.GenerateKey()
 	privateKey, err := ethTransaction.GetTheKey()
-	if nil != err {
-		panic(err)
-	}
-
-	client, err := ethTransaction.PolygonClient()
 	if nil != err {
 		panic(err)
 	}
@@ -47,14 +49,32 @@ func main() {
 	// 	common.HexToAddress("0xE592427A0AEce92De3Edee1F18E0157C05861564"),
 	// 	10)
 
-	err = uni.Swap(client,
-		privateKey,
+	wmatic := erc20Transaction.WrappedMatic(chainId)
+	usdc := erc20Transaction.USDC(chainId)
+
+	//fmt.Println(chainId, usdc.Address, wmatic.Address)
+
+	err, callData, interactAddress, poolAddress, gasLimit, etherValue := uni.Swap(client,
+		crypto.PubkeyToAddress(privateKey.PublicKey),
 		100, // 0.01%
-		erc20Transaction.USDC,
+		usdc,
 		1,
-		erc20Transaction.WMATIC)
+		wmatic)
 
 	if nil != err {
 		panic(err)
 	}
+
+	fmt.Printf("Pool Address: %s\n\n", poolAddress)
+
+	err, transactionJSON, hash, gasPrice := ethTransaction.SignTransaction(client, privateKey, interactAddress, gasLimit, callData, chainId, etherValue)
+
+	if nil != err {
+		panic(err)
+	}
+
+	fmt.Printf("JSON transaction: %s\n\n", transactionJSON)
+	fmt.Printf("Transaction hash: %s\n\n", hash)
+
+	alchemy.PrintAssetChangeRequest(interactAddress, crypto.PubkeyToAddress(privateKey.PublicKey), etherValue, callData, gasLimit, gasPrice)
 }

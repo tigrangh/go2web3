@@ -1,10 +1,11 @@
 package erc20Transaction
 
 import (
-	"context"
 	"crypto/ecdsa"
-	"math/big"
+	"errors"
+	"fmt"
 	"goland/go2web3/ethTransaction"
+	"math/big"
 
 	coreEntities "github.com/daoleno/uniswap-sdk-core/entities"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -14,24 +15,53 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-var (
-	// USDC = coreEntities.NewToken(5, common.HexToAddress("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"), 6, "USDC", "USD Coin")
-	// USDT = coreEntities.NewToken(5, common.HexToAddress("0xdAC17F958D2ee523a2206206994597C13D831ec7"), 6, "USDT", "USD Tether")
-	// DAI  = coreEntities.NewToken(1, common.HexToAddress("0x6B175474E89094C44Da98b954EedeAC495271d0F"), 18, "DAI", "Dai Stablecoin")
-
-	// Uni0 = coreEntities.NewToken(5, common.HexToAddress("0x280D4CEFC9178398B3F358fF0dd13b38f14a9f2A"), 18, "UNI0", "Uni0 token")
-	// Uni1 = coreEntities.NewToken(5, common.HexToAddress("0x1225c6990Dd8c715a9CE327F2510BEF253909855"), 18, "UNI1", "Uni1 token")
-
-	// UNI  = coreEntities.NewToken(5, common.HexToAddress("0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"), 18, "UNI", "Uniswap")
-	// WETH = coreEntities.NewToken(5, common.HexToAddress("0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6"), 18, "WETH", "Wrapped Ether")
-
-	WMATIC = coreEntities.NewToken(137, common.HexToAddress("0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270"), 18, "Matic", "Matic Network(PolyGon)")
-	AMP    = coreEntities.NewToken(137, common.HexToAddress("0x0621d647cecbFb64b79E44302c1933cB4f27054d"), 18, "AMP", "Amp")
-	USDC   = coreEntities.NewToken(137, common.HexToAddress("0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"), 6, "USDC", "USD Coin")
-	USDT   = coreEntities.NewToken(137, common.HexToAddress("0xc2132D05D31c914a87C6611C10748AEb04B58e8F"), 6, "USDT", "USD Tether")
-	AGIX   = coreEntities.NewToken(137, common.HexToAddress("0x190Eb8a183D22a4bdf278c6791b152228857c033"), 6, "AGIX", "SingularityNET Token")
-	UNI    = coreEntities.NewToken(137, common.HexToAddress("0xb33EaAd8d922B1083446DC23f610c2567fB5180f"), 18, "UNI", "UNISwap Token")
-)
+func USDT(chainId uint) *coreEntities.Token {
+	if chainId == 137 {
+		return coreEntities.NewToken(chainId, common.HexToAddress("0xc2132D05D31c914a87C6611C10748AEb04B58e8F"), 6, "USDT", "USD Tether")
+	} else if chainId == 1 {
+		return coreEntities.NewToken(chainId, common.HexToAddress("0xdAC17F958D2ee523a2206206994597C13D831ec7"), 6, "USDT", "USD Tether")
+	} else {
+		panic(errors.New(fmt.Sprintf("USDT undefined for %d", chainId)))
+	}
+}
+func USDC(chainId uint) *coreEntities.Token {
+	if chainId == 137 {
+		return coreEntities.NewToken(chainId, common.HexToAddress("0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"), 6, "USDC", "USD Coin")
+	} else if chainId == 1 {
+		return coreEntities.NewToken(chainId, common.HexToAddress("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"), 6, "USDC", "USD Coin")
+	} else {
+		panic(errors.New(fmt.Sprintf("USDT undefined for %d", chainId)))
+	}
+}
+func UNI(chainId uint) *coreEntities.Token {
+	if chainId == 137 {
+		return coreEntities.NewToken(chainId, common.HexToAddress("0xb33EaAd8d922B1083446DC23f610c2567fB5180f"), 18, "UNI", "UNISwap Token")
+	} else if chainId == 1 {
+		return coreEntities.NewToken(chainId, common.HexToAddress("0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"), 18, "UNI", "UNISwap Token")
+	} else {
+		panic(errors.New(fmt.Sprintf("UNI undefined for %d", chainId)))
+	}
+}
+func WrappedMatic(chainId uint) *coreEntities.Token {
+	if chainId == 137 {
+		return coreEntities.NewToken(chainId, common.HexToAddress("0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270"), 18, "WMATIC", "Wrapped Matic")
+	} else if chainId == 1 {
+		return coreEntities.NewToken(chainId, common.HexToAddress("0x7c9f4C87d911613Fe9ca58b579f737911AAD2D43"), 18, "WMATIC", "Wrapped Matic (Wormhole)")
+	} else {
+		panic(errors.New(fmt.Sprintf("WrappedMatic undefined for %d", chainId)))
+	}
+}
+func WrappedEther(chainId uint) *coreEntities.Token {
+	if chainId == 137 {
+		return coreEntities.NewToken(chainId, common.HexToAddress("0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619"), 18, "WETH", "Wrapped Ether")
+	} else if chainId == 1 {
+		return coreEntities.NewToken(chainId, common.HexToAddress("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"), 18, "WETH", "Wrapped Ether")
+	} else if chainId == 5 {
+		return coreEntities.NewToken(chainId, common.HexToAddress("0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6"), 18, "WETH", "Wrapped Ether")
+	} else {
+		panic(errors.New(fmt.Sprintf("WrappedEther undefined for %d", chainId)))
+	}
+}
 
 func transferCallData(toAddress common.Address, amount *big.Int) []byte {
 	transferFnSignature := []byte("transfer(address,uint256)")
@@ -73,27 +103,22 @@ func Transfer(client *ethclient.Client,
 	privateKey *ecdsa.PrivateKey,
 	contractAddress common.Address,
 	toAddress common.Address,
-	amount float64) error {
+	amount float64) (error, []byte, common.Address, uint64, *big.Int) {
 
 	token, err := erc20.NewErc20(contractAddress, client)
 	if err != nil {
-		return err
+		return err, nil, common.Address{}, 0, nil
 	}
 
 	decimals, err := token.Decimals(&bind.CallOpts{})
 	if err != nil {
-		return err
+		return err, nil, common.Address{}, 0, nil
 	}
 
 	bigAmount := ethTransaction.FloatToBigInt(amount, int(decimals))
 
 	callData := transferCallData(toAddress, bigAmount)
 
-	gasPrice, err := client.SuggestGasPrice(context.Background())
-	if nil != err {
-		return err
-	}
-
 	// fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 	// gasLimit, err := client.EstimateGas(context.Background(), ethereum.CallMsg{
 	// 	From:     fromAddress,
@@ -106,49 +131,32 @@ func Transfer(client *ethclient.Client,
 	// 	return err
 	// }
 
-	gasLimit := uint64(4 * 21000) // works with this on Polygon
+	gasLimit := uint64(4 * 21000)
 
-	return ethTransaction.Execute(client, privateKey, contractAddress, gasLimit, callData, gasPrice, big.NewInt(0))
+	return nil, callData, contractAddress, gasLimit, big.NewInt(0)
 }
 
-func ApproveTransfer(client *ethclient.Client,
+func Approve(client *ethclient.Client,
 	privateKey *ecdsa.PrivateKey,
 	contractAddress common.Address,
 	toAddress common.Address,
-	amount float64) error {
+	amount float64) (error, []byte, common.Address, uint64, *big.Int) {
 
 	token, err := erc20.NewErc20(contractAddress, client)
 	if err != nil {
-		return err
+		return err, nil, common.Address{}, 0, nil
 	}
 
 	decimals, err := token.Decimals(&bind.CallOpts{})
 	if err != nil {
-		return err
+		return err, nil, common.Address{}, 0, nil
 	}
 
 	bigAmount := ethTransaction.FloatToBigInt(amount, int(decimals))
 
 	callData := approveTransferCallData(toAddress, bigAmount)
 
-	gasPrice, err := client.SuggestGasPrice(context.Background())
-	if nil != err {
-		return err
-	}
+	gasLimit := uint64(4 * 21000)
 
-	// fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
-	// gasLimit, err := client.EstimateGas(context.Background(), ethereum.CallMsg{
-	// 	From:     fromAddress,
-	// 	To:       &contractAddress,
-	// 	GasPrice: gasPrice,
-	// 	Value:    bigAmount,
-	// 	Data:     callData,
-	// })
-	// if nil != err {
-	// 	return err
-	// }
-
-	gasLimit := uint64(4 * 21000) // works with this on Polygon
-
-	return ethTransaction.Execute(client, privateKey, contractAddress, gasLimit, callData, gasPrice, big.NewInt(0))
+	return nil, callData, contractAddress, gasLimit, big.NewInt(0)
 }
