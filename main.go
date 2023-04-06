@@ -76,5 +76,5 @@ func main() {
 	fmt.Printf("JSON transaction: %s\n\n", transactionJSON)
 	fmt.Printf("Transaction hash: %s\n\n", hash)
 
-	alchemy.PrintAssetChangeRequest(interactAddress, crypto.PubkeyToAddress(privateKey.PublicKey), etherValue, callData, gasLimit, gasPrice)
+	alchemy.PrintAssetChangeRequest(chainId, interactAddress, crypto.PubkeyToAddress(privateKey.PublicKey), etherValue, callData, gasLimit, gasPrice)
 }
