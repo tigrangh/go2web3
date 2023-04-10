@@ -47,6 +47,11 @@ func main() {
 	// fmt.Println(crypto.PubkeyToAddress(privateKey.PublicKey))
 	// fmt.Println(fmt.Println(hex.EncodeToString(crypto.FromECDSA(privateKey))))
 
+	// callData, interactAddress, gasLimit, etherValue := ethTransaction.TransferEther(client,
+	// 	privateKey,
+	// 	common.HexToAddress("0xaa"),
+	// 	0.1)
+
 	// err, callData, interactAddress, gasLimit, etherValue := erc20Transaction.Approve(client,
 	// 	wmatic.Address,
 	// 	common.HexToAddress("0xE592427A0AEce92De3Edee1F18E0157C05861564"),
