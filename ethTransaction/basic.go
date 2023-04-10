@@ -61,7 +61,13 @@ func BigIntToFloat(amount *big.Int, decimals int) float64 {
 func prepareTransactionDataByJSON(transactionJSON string,
 	fromAddress common.Address) go2web3common.TransactionData {
 
-	transaction := new(types.Transaction)
+	transaction := types.NewTransaction(0,
+		common.Address{},
+		big.NewInt(0),
+		0,
+		big.NewInt(0),
+		[]byte{})
+
 	json.Unmarshal([]byte(transactionJSON), transaction)
 
 	return go2web3common.TransactionData{
