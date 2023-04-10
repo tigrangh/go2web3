@@ -6,6 +6,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/json"
 	"errors"
+	"goland/go2web3/go2web3common"
 	"math"
 	"math/big"
 
@@ -57,85 +58,176 @@ func BigIntToFloat(amount *big.Int, decimals int) float64 {
 	return fi
 }
 
-func signTransaction(client *ethclient.Client,
-	privateKey *ecdsa.PrivateKey,
-	address common.Address,
-	gasLimit uint64,
-	callData []byte,
-	chainId uint,
-	etherValue *big.Int) (error, string, common.Hash, *big.Int, *types.Transaction) {
+func prepareTransactionDataByJSON(transactionJSON string,
+	fromAddress common.Address) go2web3common.TransactionData {
 
-	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
-	currentNonce, err := client.PendingNonceAt(context.Background(), fromAddress)
+	transaction := new(types.Transaction)
+	json.Unmarshal([]byte(transactionJSON), transaction)
+
+	return go2web3common.TransactionData{
+		FromAddress:     fromAddress,
+		InteractAddress: *transaction.To(),
+		EtherValue:      transaction.Value(),
+		CallData:        transaction.Data(),
+		GasLimit:        transaction.Gas(),
+		GasPrice:        transaction.GasPrice()}
+}
+
+func prepareTransactionByData(client *ethclient.Client,
+	transactionData go2web3common.TransactionData) (error, *types.Transaction, go2web3common.TransactionData) {
 
 	gasPrice, err := client.SuggestGasPrice(context.Background())
-
 	if nil != err {
-		return err, "", common.Hash{}, nil, nil
+		return err, nil, go2web3common.TransactionData{}
 	}
 
-	transaction := types.NewTransaction(currentNonce, address, etherValue, gasLimit, gasPrice, callData)
+	currentNonce, err := client.PendingNonceAt(context.Background(), transactionData.FromAddress)
+	if nil != err {
+		return err, nil, go2web3common.TransactionData{}
+	}
+
+	transactionData.GasPrice = gasPrice
+
+	return nil, types.NewTransaction(currentNonce,
+		transactionData.InteractAddress,
+		transactionData.EtherValue,
+		transactionData.GasLimit,
+		transactionData.GasPrice,
+		transactionData.CallData), transactionData
+}
+
+func signTransaction(client *ethclient.Client,
+	privateKey *ecdsa.PrivateKey,
+	transaction *types.Transaction,
+	chainId uint) (error, string, common.Hash, *types.Transaction) {
 
 	signereth := types.NewEIP155Signer(big.NewInt(int64(chainId)))
 	hash := signereth.Hash(transaction)
 
 	signature, err := crypto.Sign(hash.Bytes(), privateKey)
 	if err != nil {
-		return err, "", common.Hash{}, nil, nil
+		return err, "", common.Hash{}, nil
 	}
 
 	transaction, err = transaction.WithSignature(signereth, signature)
 	if err != nil {
-		return err, "", common.Hash{}, nil, nil
+		return err, "", common.Hash{}, nil
 	}
 
 	transactionJSON, err := json.Marshal(transaction)
 	if err != nil {
-		return err, "", common.Hash{}, nil, nil
+		return err, "", common.Hash{}, nil
 	}
 
 	sigPublicKey, err := crypto.Ecrecover(hash.Bytes(), signature)
 	if err != nil {
-		return err, "", common.Hash{}, nil, nil
+		return err, "", common.Hash{}, nil
 	}
 
 	publicKeyBytes := crypto.FromECDSAPub(&privateKey.PublicKey)
 	if false == bytes.Equal(sigPublicKey, publicKeyBytes) {
-		return errors.New("how can signature be incorrect?"), "", common.Hash{}, nil, nil
+		return errors.New("how can signature be incorrect?"), "", common.Hash{}, nil
 	}
 
-	return err, string(transactionJSON), hash, gasPrice, transaction
+	return err, string(transactionJSON), hash, transaction
 }
 
 func SignTransaction(client *ethclient.Client,
 	privateKey *ecdsa.PrivateKey,
-	address common.Address,
+	interactAddress common.Address,
 	gasLimit uint64,
 	callData []byte,
 	chainId uint,
-	etherValue *big.Int) (error, string, common.Hash, *big.Int) {
+	etherValue *big.Int) (error, string, common.Hash, *types.Transaction, go2web3common.TransactionData) {
 
-	err, transactionJSON, hash, gasPrice, _ := signTransaction(client, privateKey, address, gasLimit, callData, chainId, etherValue)
-	return err, transactionJSON, hash, gasPrice
+	transactionData := go2web3common.TransactionData{
+		FromAddress:     crypto.PubkeyToAddress(privateKey.PublicKey),
+		InteractAddress: interactAddress,
+		EtherValue:      etherValue,
+		CallData:        callData,
+		GasLimit:        gasLimit,
+		GasPrice:        big.NewInt(0)}
+
+	err, transaction, transactionData := prepareTransactionByData(client, transactionData)
+	if err != nil {
+		return err, "", common.Hash{}, nil, go2web3common.TransactionData{}
+	}
+
+	err, transactionJSON, hash, transaction := signTransaction(client, privateKey, transaction, chainId)
+	return err, transactionJSON, hash, transaction, transactionData
 }
 
 func SignTransactionAndExecute(client *ethclient.Client,
 	privateKey *ecdsa.PrivateKey,
-	address common.Address,
+	interactAddress common.Address,
 	gasLimit uint64,
 	callData []byte,
 	chainId uint,
-	etherValue *big.Int) (error, string, common.Hash, *big.Int) {
+	etherValue *big.Int) (error, string, common.Hash, *types.Transaction, go2web3common.TransactionData) {
 
-	err, transactionJSON, hash, gasPrice, transaction := signTransaction(client, privateKey, address, gasLimit, callData, chainId, etherValue)
+	transactionData := go2web3common.TransactionData{
+		FromAddress:     crypto.PubkeyToAddress(privateKey.PublicKey),
+		InteractAddress: interactAddress,
+		EtherValue:      etherValue,
+		CallData:        callData,
+		GasLimit:        gasLimit,
+		GasPrice:        big.NewInt(0)}
+
+	err, transaction, transactionData := prepareTransactionByData(client, transactionData)
 	if err != nil {
-		return err, "", common.Hash{}, nil
+		return err, "", common.Hash{}, nil, go2web3common.TransactionData{}
+	}
+
+	err, transactionJSON, hash, transaction := signTransaction(client, privateKey, transaction, chainId)
+	if err != nil {
+		return err, "", common.Hash{}, nil, go2web3common.TransactionData{}
 	}
 
 	err = client.SendTransaction(context.Background(), transaction)
 	if err != nil {
-		return err, "", common.Hash{}, nil
+		return err, "", common.Hash{}, nil, go2web3common.TransactionData{}
 	}
 
-	return err, transactionJSON, hash, gasPrice
+	return err, transactionJSON, hash, transaction, transactionData
+}
+
+func SignJSONTransaction(client *ethclient.Client,
+	privateKey *ecdsa.PrivateKey,
+	transactionJSON string,
+	chainId uint) (error, string, common.Hash, *types.Transaction, go2web3common.TransactionData) {
+
+	transactionData := prepareTransactionDataByJSON(transactionJSON, crypto.PubkeyToAddress(privateKey.PublicKey))
+
+	err, transaction, transactionData := prepareTransactionByData(client, transactionData)
+	if err != nil {
+		return err, "", common.Hash{}, nil, go2web3common.TransactionData{}
+	}
+
+	err, transactionJSON, hash, transaction := signTransaction(client, privateKey, transaction, chainId)
+	return err, transactionJSON, hash, transaction, transactionData
+}
+
+func SignJSONTransactionAndExecute(client *ethclient.Client,
+	privateKey *ecdsa.PrivateKey,
+	transactionJSON string,
+	chainId uint) (error, string, common.Hash, *types.Transaction, go2web3common.TransactionData) {
+
+	transactionData := prepareTransactionDataByJSON(transactionJSON, crypto.PubkeyToAddress(privateKey.PublicKey))
+
+	err, transaction, transactionData := prepareTransactionByData(client, transactionData)
+	if err != nil {
+		return err, "", common.Hash{}, nil, go2web3common.TransactionData{}
+	}
+
+	err, transactionJSON, hash, transaction := signTransaction(client, privateKey, transaction, chainId)
+	if err != nil {
+		return err, "", common.Hash{}, nil, go2web3common.TransactionData{}
+	}
+
+	err = client.SendTransaction(context.Background(), transaction)
+	if err != nil {
+		return err, "", common.Hash{}, nil, go2web3common.TransactionData{}
+	}
+
+	return err, transactionJSON, hash, transaction, transactionData
 }

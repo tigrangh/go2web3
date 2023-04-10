@@ -1,7 +1,6 @@
 package erc20Transaction
 
 import (
-	"crypto/ecdsa"
 	"errors"
 	"fmt"
 	"goland/go2web3/ethTransaction"
@@ -62,6 +61,13 @@ func WrappedEther(chainId uint) *coreEntities.Token {
 		panic(errors.New(fmt.Sprintf("WrappedEther undefined for %d", chainId)))
 	}
 }
+func GeghamToken(chainId uint) *coreEntities.Token {
+	if chainId == 80001 {
+		return coreEntities.NewToken(chainId, common.HexToAddress("0x18d223fe5d767b2db7586ad23d8134dd8990fa47"), 18, "GTC", "Gegham Token")
+	} else {
+		panic(errors.New(fmt.Sprintf("GeghamToken undefined for %d", chainId)))
+	}
+}
 
 func transferCallData(toAddress common.Address, amount *big.Int) []byte {
 	transferFnSignature := []byte("transfer(address,uint256)")
@@ -100,7 +106,6 @@ func approveTransferCallData(toAddress common.Address, amount *big.Int) []byte {
 }
 
 func Transfer(client *ethclient.Client,
-	privateKey *ecdsa.PrivateKey,
 	contractAddress common.Address,
 	toAddress common.Address,
 	amount float64) (error, []byte, common.Address, uint64, *big.Int) {
@@ -137,7 +142,6 @@ func Transfer(client *ethclient.Client,
 }
 
 func Approve(client *ethclient.Client,
-	privateKey *ecdsa.PrivateKey,
 	contractAddress common.Address,
 	toAddress common.Address,
 	amount float64) (error, []byte, common.Address, uint64, *big.Int) {

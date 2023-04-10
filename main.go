@@ -7,12 +7,11 @@ import (
 	"goland/go2web3/ethTransaction"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func main() {
 
-	client, chainId, err := ethTransaction.PolygonMumbaiClient()
+	client, chainId, err := ethTransaction.PolygonMainnetClient()
 	if nil != err {
 		panic(err)
 	}
@@ -40,32 +39,30 @@ func main() {
 	// err = uni.GetRate(client, 100, erc20Transaction.USDC, 0.1, erc20Transaction.WMATIC)
 	// toAddress := common.HexToAddress("0x1298bF10baa546A332D9c675d390f79Cf375227C")
 
-	// err = ethTransaction.TransferEther(client, privateKey, toAddress, 0.05)
-	// err = erc20Transaction.TransferERC20(client, privateKey, erc20Transaction.USDC.Address, toAddress, 0.05)
+	//wmatic := erc20Transaction.WrappedMatic(chainId)
+	usdc := erc20Transaction.USDC(chainId)
+	// gtc := erc20Transaction.GeghamToken(chainId)
 
-	// err = erc20Transaction.ApproveTransfer(client,
-	// 	privateKey,
-	// 	erc20Transaction.USDC.Address,
+	// fmt.Println(chainId, usdc.Address, wmatic.Address)
+	// fmt.Println(crypto.PubkeyToAddress(privateKey.PublicKey))
+	// fmt.Println(fmt.Println(hex.EncodeToString(crypto.FromECDSA(privateKey))))
+
+	// err, callData, interactAddress, gasLimit, etherValue := erc20Transaction.Approve(client,
+	// 	wmatic.Address,
 	// 	common.HexToAddress("0xE592427A0AEce92De3Edee1F18E0157C05861564"),
-	// 	10)
-
-	// wmatic := erc20Transaction.WrappedMatic(chainId)
-	// usdc := erc20Transaction.USDC(chainId)
-	toAddress := common.HexToAddress("0x827C81e18a1b729Da4C0bf20c1Dedd0EC6dA2182")
+	// 	4)
 
 	err, callData, interactAddress, gasLimit, etherValue := erc20Transaction.Transfer(client,
-		privateKey, common.HexToAddress("0x18d223fe5d767b2db7586ad23d8134dd8990fa47"), toAddress, 100)
+		usdc.Address,
+		common.HexToAddress("0x73c17c616b918c73d12ee745ebe513ddbc0fafac"),
+		90)
 
-	//fmt.Println(chainId, usdc.Address, wmatic.Address)
-
-	//fmt.Println(crypto.PubkeyToAddress(privateKey.PublicKey))
-
-	//err, callData, interactAddress, poolAddress, gasLimit, etherValue := uni.Swap(client,
-	// crypto.PubkeyToAddress(privateKey.PublicKey),
-	// 100, // 0.01%
-	// usdc,
-	// 1,
-	// wmatic)
+	// err, callData, interactAddress, poolAddress, gasLimit, etherValue := uni.Swap(client,
+	// 	crypto.PubkeyToAddress(privateKey.PublicKey),
+	// 	100, // 0.01%
+	// 	usdc,
+	// 	1,
+	// 	wmatic)
 
 	if nil != err {
 		panic(err)
@@ -73,7 +70,18 @@ func main() {
 
 	//fmt.Printf("Pool Address: %s\n\n", poolAddress)
 
-	err, transactionJSON, hash, gasPrice := ethTransaction.SignTransaction(client, privateKey, interactAddress, gasLimit, callData, chainId, etherValue)
+	err, transactionJSON, hash, _, transactionData := ethTransaction.SignTransaction(client,
+		privateKey,
+		interactAddress,
+		gasLimit,
+		callData,
+		chainId,
+		etherValue)
+
+	// err, transactionJSON, hash, _, transactionData := ethTransaction.SignJSONTransaction(client,
+	// 	privateKey,
+	// 	`{"type":"0x0","nonce":"0x22","gasPrice":"0x25da7ae700","maxPriorityFeePerGas":null,"maxFeePerGas":null,"gas":"0x4ce78","value":"0x0","input":"0x414bf3890000000000000000000000000d500b1d8e8ef31e21c99d1db9a6444d3adf12700000000000000000000000002791bca1f2de4661ed88a30c99a7a9449aa841740000000000000000000000000000000000000000000000000000000000000064000000000000000000000000a7b1d2f8dcb87216f4876b8cd3828ae6b48e4d6e000000000000000000000000000000000000000000000000000000006430088600000000000000000000000000000000000000000000000030f32e32becc7a00000000000000000000000000000000000000000000000000000000000035e4f20000000000000000000000000000000000000000000000000000000000000000","v":"0x0","r":"0x0","s":"0x0","to":"0xe592427a0aece92de3edee1f18e0157c05861564","hash":"0x2ab217de2a0215614f9eb223a31a381346abafb2c999a0226778c22958c0865a"}`,
+	// 	chainId)
 
 	if nil != err {
 		panic(err)
@@ -82,32 +90,15 @@ func main() {
 	fmt.Printf("JSON transaction: %s\n\n", transactionJSON)
 	fmt.Printf("Transaction hash: %s\n\n", hash)
 
-	ob := []alchemy.RequestBody{
-		{
-			InteractAddress: interactAddress,
-			FromAddress:     crypto.PubkeyToAddress(privateKey.PublicKey),
-			EtherValue:      etherValue,
-			CallData:        callData,
-			GasLimit:        gasLimit,
-			GasPrice:        gasPrice,
-		},
-		{
-			InteractAddress: interactAddress,
-			FromAddress:     crypto.PubkeyToAddress(privateKey.PublicKey),
-			EtherValue:      etherValue,
-			CallData:        callData,
-			GasLimit:        gasLimit,
-			GasPrice:        gasPrice,
-		},
-		{
-			InteractAddress: interactAddress,
-			FromAddress:     crypto.PubkeyToAddress(privateKey.PublicKey),
-			EtherValue:      etherValue,
-			CallData:        callData,
-			GasLimit:        gasLimit,
-			GasPrice:        gasPrice,
-		},
-	}
+	alchemy.PrintAssetChangeRequest(chainId, transactionData)
 
-	alchemy.PrintAssetChangeBundleRequest(chainId, ob) //chainId, interactAddress, crypto.PubkeyToAddress(privateKey.PublicKey), etherValue, callData, gasLimit, gasPrice
+	// // alchemy.PrintAssetChangeRequest(chainId, interactAddress, crypto.PubkeyToAddress(privateKey.PublicKey), etherValue, callData, gasLimit, gasPrice)
+	// alchemy.PrintAssetChangeRequest(chainId,
+	// 	*transaction.To(),
+	// 	crypto.PubkeyToAddress(privateKey.PublicKey),
+	// 	transaction.Value(),
+	// 	transaction.Data(),
+	// 	transaction.Gas(),
+	// 	gasPrice)
+
 }
